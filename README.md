@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="logo.png" alt="DontDrunkText Logo" width="400"/>
+  <img src="logo.png" alt="DontDrunkText Logo" width="700"/>
 </p>
 
 <h1 align="center">DontDrunkText</h1>
 
 <p align="center">
-  <strong>🍺 Proteggiti dai messaggi inviati in stato alterato 📱</strong>
+  <strong>Proteggiti dai messaggi inviati in stato alterato</strong>
 </p>
 
 <p align="center">
-  <a href="#-caratteristiche">Caratteristiche</a> •
-  <a href="#-installazione">Installazione</a> •
-  <a href="#-utilizzo">Utilizzo</a> •
-  <a href="#%EF%B8%8F-configurazione">Configurazione</a> •
-  <a href="#-come-funziona">Come Funziona</a> •
-  <a href="#-privacy">Privacy</a>
+  <a href="#caratteristiche">Caratteristiche</a> •
+  <a href="#installazione">Installazione</a> •
+  <a href="#utilizzo">Utilizzo</a> •
+  <a href="#configurazione">Configurazione</a> •
+  <a href="#come-funziona">Come Funziona</a> •
+  <a href="#privacy">Privacy</a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ---
 
-## 🎯 Il Problema
+## Il Problema
 
 Hai mai scritto un messaggio di cui ti sei pentito la mattina dopo?
 
@@ -34,16 +34,16 @@ Un messaggio all'ex alle 3 di notte, una dichiarazione d'amore al crush dopo qua
 
 **DontDrunkText** monitora i tuoi messaggi WhatsApp e ti avvisa quando rileva che potresti star scrivendo in stato alterato.
 
-## ✨ Caratteristiche
+## Caratteristiche
 
-- 🔒 **100% Locale** - Nessun dato lascia il tuo dispositivo. L'AI gira localmente con Ollama
-- 🎯 **Contatti Pericolosi** - Configura ex, crush, capo e altri contatti "a rischio"
-- ⏰ **Fasce Orarie** - Monitoraggio attivo nelle ore critiche (es. 21:00-06:00)
-- 🧠 **AI Intelligente** - Rileva errori di battitura, tono emotivo, pattern sospetti
-- ⚡ **Alert Real-time** - Ricevi un messaggio di avviso prima che sia troppo tardi
-- 🛠️ **Facile Setup** - Wizard di configurazione guidato, nessuna competenza tecnica richiesta
+- **100% Locale** - Nessun dato lascia il tuo dispositivo. L'AI gira localmente con Ollama
+- **Contatti Pericolosi** - Configura ex, crush, capo e altri contatti "a rischio"
+- **Fasce Orarie** - Monitoraggio attivo nelle ore critiche (es. 21:00-06:00)
+- **AI Intelligente** - Rileva errori di battitura, tono emotivo, pattern sospetti
+- **Alert Real-time** - Ricevi un messaggio di avviso prima che sia troppo tardi
+- **Facile Setup** - Wizard di configurazione guidato, nessuna competenza tecnica richiesta
 
-## 📦 Installazione
+## Installazione
 
 ### Requisiti
 
@@ -59,10 +59,10 @@ cd DontDrunkText
 ```
 
 Lo script installerà automaticamente:
-- ✅ Node.js (se necessario)
-- ✅ Ollama (LLM locale)
-- ✅ Modello AI (llama3.2:3b)
-- ✅ Tutte le dipendenze
+- Node.js (se necessario)
+- Ollama (LLM locale)
+- Modello AI (llama3.2:3b)
+- Tutte le dipendenze
 
 ### Installazione Manuale
 
@@ -85,17 +85,17 @@ npm run build
 npm run setup
 ```
 
-## 🚀 Utilizzo
+## Utilizzo
 
 ### Comandi Disponibili
 
 | Comando | Descrizione |
 |---------|-------------|
-| `dontdrunktext start` | 🟢 Avvia il monitoraggio |
-| `dontdrunktext setup` | ⚙️ Wizard di configurazione |
-| `dontdrunktext status` | 📊 Mostra stato del sistema |
-| `dontdrunktext stop` | 🔴 Ferma il monitoraggio |
-| `dontdrunktext help` | ❓ Mostra aiuto |
+| `dontdrunktext start` | Avvia il monitoraggio |
+| `dontdrunktext setup` | Wizard di configurazione |
+| `dontdrunktext status` | Mostra stato del sistema |
+| `dontdrunktext stop` | Ferma il monitoraggio |
+| `dontdrunktext help` | Mostra aiuto |
 
 ### Primo Avvio
 
@@ -115,7 +115,7 @@ dontdrunktext start
 Quando scrivi qualcosa di sospetto, riceverai un messaggio come questo:
 
 ```
-*DontDrunkText Alert* ⚠️
+*DontDrunkText Alert*
 
 ATTENZIONE: Stai scrivendo a un contatto 'pericoloso'
 e sembri ubriaco. Metti giù il telefono!
@@ -131,7 +131,7 @@ _Ora: 02:34_
 _Risk Score: 78%_
 ```
 
-## ⚙️ Configurazione
+## Configurazione
 
 ### Wizard Guidato (Consigliato)
 
@@ -140,9 +140,9 @@ dontdrunktext setup
 ```
 
 Il wizard ti guiderà nella configurazione di:
-- 👥 Contatti pericolosi (ex, crush, capo...)
-- ⏰ Orari di monitoraggio
-- 🎚️ Livello di sensibilità
+- Contatti pericolosi (ex, crush, capo...)
+- Orari di monitoraggio
+- Livello di sensibilità
 
 ### Configurazione Manuale
 
@@ -189,22 +189,22 @@ Modifica `config.json`:
 | `high` | Più alert, maggiore cautela |
 | `paranoid` | Alert frequenti |
 
-## 🧠 Come Funziona
+## Come Funziona
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     IL TUO DISPOSITIVO                       │
 │                                                              │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
-│  │   WhatsApp   │───▶│   Baileys    │───▶│   Ollama     │   │
+│  │   WhatsApp   │───>│   Baileys    │───>│   Ollama     │   │
 │  │  (tu scrivi) │    │ (intercetta) │    │  (analizza)  │   │
 │  └──────────────┘    └──────────────┘    └──────┬───────┘   │
 │                                                  │           │
 │                      ┌───────────────────────────┘           │
-│                      ▼                                       │
+│                      v                                       │
 │               ┌──────────────┐                               │
 │               │  Se ubriaco: │                               │
-│               │  AVVISO! ⚠️  │──▶ Messaggio WhatsApp a te    │
+│               │   AVVISO!    │───> Messaggio WhatsApp a te   │
 │               └──────────────┘                               │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -221,14 +221,14 @@ Modifica `config.json`:
 ### Sistema di Scoring
 
 ```
-Score Finale = (LLM × 40%) + (Pattern × 30%) + (Orario × 15%) + (Contatto × 15%)
+Score Finale = (LLM x 40%) + (Pattern x 30%) + (Orario x 15%) + (Contatto x 15%)
 
 Moltiplicatori:
-  × 1.2 se tarda notte
-  × 1.1 se weekend
+  x 1.2 se tarda notte
+  x 1.1 se weekend
 ```
 
-## 🔒 Privacy
+## Privacy
 
 **La tua privacy è la nostra priorità.**
 
@@ -242,12 +242,12 @@ Moltiplicatori:
 
 ### Cosa NON viene mai fatto
 
-- ❌ Invio messaggi a server esterni
-- ❌ Salvataggio del contenuto dei messaggi
-- ❌ Condivisione di dati con terze parti
-- ❌ Analisi in cloud
+- Invio messaggi a server esterni
+- Salvataggio del contenuto dei messaggi
+- Condivisione di dati con terze parti
+- Analisi in cloud
 
-## 🛠️ Stack Tecnologico
+## Stack Tecnologico
 
 | Componente | Tecnologia |
 |------------|------------|
@@ -257,7 +257,7 @@ Moltiplicatori:
 | **AI/LLM** | Ollama (locale) |
 | **Modello** | Llama 3.2 3B |
 
-## 📁 Struttura Progetto
+## Struttura Progetto
 
 ```
 DontDrunkText/
@@ -273,7 +273,7 @@ DontDrunkText/
 └── bin/dontdrunktext      # CLI globale
 ```
 
-## 🤝 Contributing
+## Contributing
 
 I contributi sono benvenuti!
 
@@ -283,11 +283,11 @@ I contributi sono benvenuti!
 4. Push (`git push origin feature/nuova-feature`)
 5. Apri una Pull Request
 
-## 📄 License
+## License
 
 MIT License - vedi [LICENSE](LICENSE) per dettagli.
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 Questo software è fornito "così com'è" senza garanzie. L'autore non è responsabile per:
 - Messaggi inviati nonostante gli avvisi
@@ -295,12 +295,12 @@ Questo software è fornito "così com'è" senza garanzie. L'autore non è respon
 - Carriere compromesse
 - Imbarazzo generale
 
-**La migliore protezione resta sempre: bevi responsabilmente! 🍺**
+**La migliore protezione resta sempre: bevi responsabilmente!**
 
 ---
 
 <p align="center">
-  <strong>Made with 🍺 and ❤️ to save you from yourself</strong>
+  <strong>Made to save you from yourself</strong>
 </p>
 
 <p align="center">
