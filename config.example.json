@@ -62,6 +62,14 @@
     "enabled": true,
     "cooldownMinutes": 30,
     "selfAlert": true,
+    "buddies": [
+      {
+        "name": "Marco",
+        "phone": "+395551234567",
+        "notifyAlways": false
+      }
+    ],
+    "buddyAlertLevel": "high",
     "messages": {
       "warning": "Hey, sembra che tu stia scrivendo in uno stato alterato. Forse e' meglio aspettare domani?",
       "danger": "ATTENZIONE: Stai scrivendo a un contatto 'pericoloso' e sembri ubriaco. Metti giu' il telefono!",

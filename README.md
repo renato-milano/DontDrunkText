@@ -39,6 +39,7 @@ Un messaggio all'ex alle 3 di notte, una dichiarazione d'amore al crush dopo qua
 - **Multi-Provider AI** - Scegli tra Ollama (locale), OpenAI o Anthropic
 - **Privacy First** - Con Ollama nessun dato lascia il tuo dispositivo
 - **Contatti Pericolosi** - Configura ex, crush, capo e altri contatti "a rischio"
+- **Buddies** - Amici che ricevono alert quando sei ubriaco (per aiutarti a fermarti!)
 - **Fasce Orarie** - Monitoraggio attivo nelle ore critiche (es. 21:00-06:00)
 - **AI Intelligente** - Rileva errori di battitura, tono emotivo, pattern sospetti
 - **Alert Real-time** - Ricevi un messaggio di avviso prima che sia troppo tardi
@@ -164,8 +165,9 @@ Il wizard ti guiderà nella configurazione di:
 1. **Provider AI** - Ollama, OpenAI o Anthropic
 2. **Modello** - Quale modello utilizzare
 3. **Contatti pericolosi** - Ex, crush, capo...
-4. **Orari di monitoraggio**
-5. **Livello di sensibilità**
+4. **Buddies** - Amici che ricevono alert quando sei ubriaco
+5. **Orari di monitoraggio**
+6. **Livello di sensibilità**
 
 ### Configurazione Manuale
 
@@ -243,6 +245,58 @@ Per usare OpenAI o Anthropic, aggiungi la API key:
 | `medium` | Bilanciato (raccomandato) |
 | `high` | Più alert, maggiore cautela |
 | `paranoid` | Alert frequenti |
+
+### Buddies (Amici di Supporto)
+
+Puoi configurare degli amici che riceveranno un messaggio WhatsApp quando il sistema rileva che potresti essere ubriaco. Possono aiutarti a fermarti!
+
+```json
+{
+  "alerts": {
+    "buddies": [
+      {
+        "name": "Marco",
+        "phone": "+391234567890",
+        "notifyAlways": false
+      },
+      {
+        "name": "Laura",
+        "phone": "+390987654321",
+        "notifyAlways": true
+      }
+    ],
+    "buddyAlertLevel": "high"
+  }
+}
+```
+
+| Campo | Descrizione |
+|-------|-------------|
+| `name` | Nome dell'amico |
+| `phone` | Numero WhatsApp |
+| `notifyAlways` | Se `true`, notifica sempre. Se `false`, solo per livelli >= `buddyAlertLevel` |
+| `buddyAlertLevel` | Livello minimo per notificare: `medium`, `high`, `critical` |
+
+I buddies riceveranno un messaggio tipo:
+```
+*DontDrunkText - Avviso Amico* ⚠️
+
+Ciao Marco!
+
+Un tuo amico potrebbe star scrivendo messaggi in stato alterato.
+
+*Livello:* Alto
+*Risk Score:* 78%
+
+*Segnali rilevati:*
+- Errori di battitura
+- Linguaggio emotivo
+- Orario tarda notte
+
+_Rilevato alle 02:34_
+
+_Potresti voler controllare che stia bene!_
+```
 
 ## Come Funziona
 

@@ -68,13 +68,27 @@ export interface AlertsConfig {
   enabled: boolean;
   cooldownMinutes: number;
   selfAlert: boolean;
+  /** Contatti amici che ricevono alert quando sei ubriaco */
+  buddies?: BuddyContact[];
+  /** Livello minimo di alert per notificare i buddies (default: 'high') */
+  buddyAlertLevel?: AlertLevel;
   messages: AlertMessages;
+}
+
+/** Contatto amico che riceve alert */
+export interface BuddyContact {
+  name: string;
+  phone: string;
+  /** Se notificare sempre o solo per livelli critici */
+  notifyAlways?: boolean;
 }
 
 export interface AlertMessages {
   warning: string;
   danger: string;
   critical: string;
+  /** Messaggio per i buddies (opzionale, default generato automaticamente) */
+  buddyAlert?: string;
 }
 
 export interface PrivacyConfig {

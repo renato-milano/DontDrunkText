@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, copyFileSync } from 'fs';
 import { z } from 'zod';
-import type { Config, DangerousContact, LLMProviderType } from '../types/index.js';
+import type { Config, DangerousContact, LLMProviderType, BuddyContact } from '../types/index.js';
 
 // Schema per LLM config (nuovo formato)
 const llmConfigSchema = z.object({
@@ -53,10 +53,17 @@ const configSchema = z.object({
     enabled: z.boolean().default(true),
     cooldownMinutes: z.number().positive().default(30),
     selfAlert: z.boolean().default(true),
+    buddies: z.array(z.object({
+      name: z.string(),
+      phone: z.string(),
+      notifyAlways: z.boolean().optional().default(false),
+    })).optional().default([]),
+    buddyAlertLevel: z.enum(['none', 'low', 'medium', 'high', 'critical']).optional().default('high'),
     messages: z.object({
       warning: z.string(),
       danger: z.string(),
       critical: z.string(),
+      buddyAlert: z.string().optional(),
     }),
   }),
   privacy: z.object({
@@ -190,6 +197,24 @@ export class ConfigManager {
       paranoid: 0.30,
     };
     return presets[this.config.detection.sensitivity] || 0.60;
+  }
+
+  /**
+   * Ottiene i buddies con i loro JID
+   */
+  getBuddies(): Array<BuddyContact & { jid: string }> {
+    const buddies = this.config.alerts.buddies || [];
+    return buddies.map(buddy => ({
+      ...buddy,
+      jid: this.phoneToJid(buddy.phone),
+    }));
+  }
+
+  /**
+   * Verifica se ci sono buddies configurati
+   */
+  hasBuddies(): boolean {
+    return (this.config.alerts.buddies?.length || 0) > 0;
   }
 }
 

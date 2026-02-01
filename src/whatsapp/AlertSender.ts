@@ -4,9 +4,19 @@ import type {
   RiskAssessment,
   DrunkIndicator,
   Logger,
+  BuddyContact,
 } from '../types/index.js';
 import { ConfigManager } from '../config/ConfigManager.js';
 import { BaileysClient } from './BaileysClient.js';
+
+// Ordine dei livelli di alert per confronto
+const ALERT_LEVEL_ORDER: Record<AlertLevel, number> = {
+  none: 0,
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+};
 
 export class AlertSender {
   private logger: Logger;
@@ -38,26 +48,144 @@ export class AlertSender {
       return false;
     }
 
-    // Build message
-    const message = this.buildAlertMessage(level, assessment, context);
+    let alertSent = false;
+
+    // Build message for self
+    const selfMessage = this.buildAlertMessage(level, assessment, context);
 
     // Send self-message
     if (cfg.selfAlert) {
       try {
-        await this.client.sendSelfMessage(message);
-        this.recordCooldown(context.message.recipientJid);
-        this.logger.info(`Alert sent: ${level}`, {
+        await this.client.sendSelfMessage(selfMessage);
+        this.logger.info(`Alert sent to self: ${level}`, {
           recipient: context.contact?.name || 'unknown',
           score: assessment.overallScore.toFixed(2),
         });
-        return true;
+        alertSent = true;
       } catch (error) {
-        this.logger.error('Failed to send alert', { error });
-        return false;
+        this.logger.error('Failed to send self alert', { error });
       }
     }
 
-    return false;
+    // Send to buddies if level is high enough
+    const buddiesSent = await this.sendBuddyAlerts(level, assessment, context);
+    if (buddiesSent > 0) {
+      alertSent = true;
+    }
+
+    if (alertSent) {
+      this.recordCooldown(context.message.recipientJid);
+    }
+
+    return alertSent;
+  }
+
+  /**
+   * Invia alert ai buddies configurati
+   */
+  private async sendBuddyAlerts(
+    level: AlertLevel,
+    assessment: RiskAssessment,
+    context: EnrichedContext
+  ): Promise<number> {
+    const cfg = this.config.get().alerts;
+    const buddies = this.config.getBuddies();
+
+    if (buddies.length === 0) {
+      return 0;
+    }
+
+    const minLevel = cfg.buddyAlertLevel || 'high';
+    const currentLevelOrder = ALERT_LEVEL_ORDER[level];
+    const minLevelOrder = ALERT_LEVEL_ORDER[minLevel];
+
+    let sentCount = 0;
+
+    for (const buddy of buddies) {
+      // Verifica se notificare questo buddy
+      const shouldNotify = buddy.notifyAlways || currentLevelOrder >= minLevelOrder;
+
+      if (!shouldNotify) {
+        this.logger.debug(`Skipping buddy ${buddy.name}: level ${level} < ${minLevel}`);
+        continue;
+      }
+
+      try {
+        const buddyMessage = this.buildBuddyAlertMessage(level, assessment, context, buddy);
+        await this.client.sendMessage(buddy.jid, buddyMessage);
+        this.logger.info(`Alert sent to buddy: ${buddy.name}`, {
+          level,
+          score: assessment.overallScore.toFixed(2),
+        });
+        sentCount++;
+      } catch (error) {
+        this.logger.error(`Failed to send alert to buddy ${buddy.name}`, { error });
+      }
+    }
+
+    return sentCount;
+  }
+
+  /**
+   * Costruisce il messaggio di alert per i buddies
+   */
+  private buildBuddyAlertMessage(
+    level: AlertLevel,
+    assessment: RiskAssessment,
+    context: EnrichedContext,
+    buddy: BuddyContact
+  ): string {
+    const cfg = this.config.get().alerts;
+    const userName = this.client.getMyJid()?.split('@')[0] || 'Il tuo amico';
+
+    // Usa messaggio custom se configurato
+    if (cfg.messages.buddyAlert) {
+      return cfg.messages.buddyAlert
+        .replace('{name}', buddy.name)
+        .replace('{level}', level)
+        .replace('{score}', Math.round(assessment.overallScore * 100).toString());
+    }
+
+    // Messaggio default per buddies
+    let message = `*DontDrunkText - Avviso Amico* ${this.getLevelEmoji(level)}\n\n`;
+    message += `Ciao ${buddy.name}!\n\n`;
+    message += `Un tuo amico potrebbe star scrivendo messaggi in stato alterato.\n\n`;
+
+    // Livello di rischio
+    message += `*Livello:* ${this.getLevelText(level)}\n`;
+    message += `*Risk Score:* ${Math.round(assessment.overallScore * 100)}%\n\n`;
+
+    // Indicatori (senza rivelare troppi dettagli per privacy)
+    if (assessment.indicators.length > 0) {
+      message += `*Segnali rilevati:*\n`;
+      for (const indicator of assessment.indicators.slice(0, 3)) {
+        message += `- ${this.formatIndicator(indicator)}\n`;
+      }
+      message += '\n';
+    }
+
+    // Orario
+    const time = context.message.timestamp;
+    message += `_Rilevato alle ${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}_\n\n`;
+
+    message += `_Potresti voler controllare che stia bene!_`;
+
+    return message;
+  }
+
+  private getLevelText(level: AlertLevel): string {
+    switch (level) {
+      case 'critical':
+        return 'CRITICO';
+      case 'high':
+        return 'Alto';
+      case 'medium':
+        return 'Medio';
+      case 'low':
+        return 'Basso';
+      default:
+        return 'Sconosciuto';
+    }
   }
 
   private buildAlertMessage(

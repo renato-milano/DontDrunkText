@@ -196,8 +196,9 @@ async function stepWelcome(): Promise<boolean> {
   print(`${c.bold}Cosa faremo:${c.reset}`);
   print('  1. Sceglieremo il modello AI da utilizzare');
   print('  2. Configureremo i contatti "pericolosi" (ex, crush, capo...)');
-  print('  3. Imposteremo gli orari di monitoraggio');
-  print('  4. Sceglieremo il livello di sensibilita\'');
+  print('  3. Configureremo i "buddies" (amici che ricevono alert)');
+  print('  4. Imposteremo gli orari di monitoraggio');
+  print('  5. Sceglieremo il livello di sensibilita\'');
   print('');
 
   const answer = await question(`${c.cyan}Pronto per iniziare? [S/n]: ${c.reset}`);
@@ -439,7 +440,96 @@ async function stepLLM(config: Config): Promise<void> {
   }
 }
 
-// Step 5: Sensibilita'
+// Step 5: Buddies (amici che ricevono alert)
+async function stepBuddies(config: Config): Promise<void> {
+  printSection('AMICI DI SUPPORTO (BUDDIES)');
+
+  print('Puoi configurare degli amici che riceveranno un messaggio');
+  print('quando il sistema rileva che potresti essere ubriaco.');
+  print('Possono aiutarti a fermarti prima di fare danni!\n');
+
+  const wantBuddies = await question(`${c.cyan}Vuoi configurare dei buddies? [s/N]: ${c.reset}`);
+
+  if (wantBuddies.toLowerCase() !== 's') {
+    printInfo('Nessun buddy configurato. Puoi aggiungerli dopo in config.json');
+    config.alerts.buddies = [];
+    return;
+  }
+
+  const buddies: Array<{ name: string; phone: string; notifyAlways?: boolean }> = [];
+  let addMore = true;
+
+  while (addMore) {
+    print(`\n${c.bold}Aggiungi un buddy:${c.reset}\n`);
+
+    // Nome
+    const name = await question(`  ${c.cyan}Nome${c.reset} (es. "Marco"): `);
+    if (!name) {
+      printWarning('Nome non valido, riprova');
+      continue;
+    }
+
+    // Telefono
+    let phone = '';
+    let validPhone = false;
+    while (!validPhone) {
+      const phoneInput = await question(`  ${c.cyan}Numero di telefono${c.reset} (es. +39 123 456 7890): `);
+      const validated = validatePhone(phoneInput);
+      if (validated) {
+        phone = validated;
+        validPhone = true;
+      } else {
+        printWarning('Numero non valido. Usa formato internazionale (es. +39...)');
+      }
+    }
+
+    // Notifica sempre?
+    print(`\n  ${c.cyan}Quando notificare?${c.reset}`);
+    print(`    1. Solo per livelli alti/critici (consigliato)`);
+    print(`    2. Sempre, per qualsiasi rilevamento`);
+
+    const notifyAnswer = await question(`\n  Scegli [1-2, default 1]: `);
+    const notifyAlways = notifyAnswer === '2';
+
+    // Aggiungi buddy
+    buddies.push({ name, phone, notifyAlways });
+
+    printSuccess(`Buddy "${name}" aggiunto${notifyAlways ? ' (notifica sempre)' : ''}`);
+
+    // Altro buddy?
+    print('');
+    const moreAnswer = await question(`${c.cyan}Aggiungere un altro buddy? [s/N]: ${c.reset}`);
+    addMore = moreAnswer.toLowerCase() === 's';
+  }
+
+  config.alerts.buddies = buddies;
+
+  if (buddies.length > 0) {
+    print(`\n${c.green}Buddies configurati: ${buddies.length}${c.reset}`);
+    buddies.forEach((b) => {
+      print(`  • ${b.name} - ${b.phone}${b.notifyAlways ? ' (sempre)' : ''}`);
+    });
+  }
+
+  // Livello minimo per notificare i buddies
+  if (buddies.length > 0) {
+    print(`\n${c.cyan}Livello minimo per notificare i buddies:${c.reset}`);
+    print(`  1. Medio - Notifica per livelli medio, alto e critico`);
+    print(`  2. Alto - Notifica solo per livelli alto e critico (consigliato)`);
+    print(`  3. Critico - Notifica solo per emergenze`);
+
+    const levelAnswer = await question(`\n  Scegli [1-3, default 2]: `);
+    const levelMap: Record<string, 'medium' | 'high' | 'critical'> = {
+      '1': 'medium',
+      '2': 'high',
+      '3': 'critical',
+    };
+    config.alerts.buddyAlertLevel = levelMap[levelAnswer] || 'high';
+    printSuccess(`Livello minimo: ${config.alerts.buddyAlertLevel}`);
+  }
+}
+
+// Step 6: Sensibilita'
 async function stepSensitivity(config: Config): Promise<void> {
   printSection('SENSIBILITA\' RILEVAMENTO');
 
@@ -472,7 +562,7 @@ async function stepSensitivity(config: Config): Promise<void> {
   printSuccess(`Sensibilita' impostata: ${config.detection.sensitivity}`);
 }
 
-// Step 6: Riepilogo
+// Step 7: Riepilogo
 async function stepSummary(config: Config): Promise<boolean> {
   printSection('RIEPILOGO CONFIGURAZIONE');
 
@@ -491,6 +581,16 @@ async function stepSummary(config: Config): Promise<boolean> {
     config.dangerousContacts.forEach((ct) => {
       print(`  • ${ct.name} (${ct.category}) - ${ct.phone} - Rischio: ${ct.riskLevel}/10`);
     });
+  }
+
+  print(`\n${c.bold}Buddies (amici di supporto):${c.reset}`);
+  if (!config.alerts.buddies || config.alerts.buddies.length === 0) {
+    print('  Nessuno configurato');
+  } else {
+    config.alerts.buddies.forEach((b) => {
+      print(`  • ${b.name} - ${b.phone}${b.notifyAlways ? ' (sempre)' : ''}`);
+    });
+    print(`  • Livello minimo notifica: ${config.alerts.buddyAlertLevel || 'high'}`);
   }
 
   print(`\n${c.bold}Monitoraggio:${c.reset}`);
@@ -551,16 +651,19 @@ async function main() {
     // Step 2: LLM Provider
     await stepLLM(config);
 
-    // Step 3: Contatti
+    // Step 3: Contatti pericolosi
     await stepContacts(config);
 
-    // Step 4: Orari
+    // Step 4: Buddies
+    await stepBuddies(config);
+
+    // Step 5: Orari
     await stepSchedule(config);
 
-    // Step 5: Sensibilita'
+    // Step 6: Sensibilita'
     await stepSensitivity(config);
 
-    // Step 6: Riepilogo
+    // Step 7: Riepilogo
     const save = await stepSummary(config);
 
     if (save) {
