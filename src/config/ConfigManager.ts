@@ -1,14 +1,30 @@
 import { readFileSync, existsSync, copyFileSync } from 'fs';
 import { z } from 'zod';
-import type { Config, DangerousContact } from '../types/index.js';
+import type { Config, DangerousContact, LLMProviderType } from '../types/index.js';
+
+// Schema per LLM config (nuovo formato)
+const llmConfigSchema = z.object({
+  provider: z.enum(['ollama', 'openai', 'anthropic']).default('ollama'),
+  model: z.string().default('llama3.2:3b'),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().url().optional(),
+  timeout: z.number().positive().default(30000),
+  temperature: z.number().min(0).max(1).optional(),
+});
+
+// Schema legacy per Ollama (retrocompatibilita')
+const ollamaLegacySchema = z.object({
+  model: z.string().default('llama3.2:3b'),
+  baseUrl: z.string().url().default('http://localhost:11434'),
+  timeout: z.number().positive().default(30000),
+});
 
 // Zod schema for validation
 const configSchema = z.object({
-  ollama: z.object({
-    model: z.string().default('llama3.2:3b'),
-    baseUrl: z.string().url().default('http://localhost:11434'),
-    timeout: z.number().positive().default(30000),
-  }),
+  // Nuovo formato LLM (preferito)
+  llm: llmConfigSchema.optional(),
+  // Legacy Ollama (retrocompatibilita')
+  ollama: ollamaLegacySchema.optional(),
   monitoring: z.object({
     enabled: z.boolean().default(true),
     startHour: z.number().min(0).max(23).default(21),
@@ -80,7 +96,30 @@ export class ConfigManager {
       throw new Error('Invalid configuration file');
     }
 
-    return result.data as Config;
+    const parsedConfig = result.data;
+
+    // Retrocompatibilita': converti vecchio formato 'ollama' in nuovo 'llm'
+    if (!parsedConfig.llm && parsedConfig.ollama) {
+      parsedConfig.llm = {
+        provider: 'ollama' as const,
+        model: parsedConfig.ollama.model,
+        baseUrl: parsedConfig.ollama.baseUrl,
+        timeout: parsedConfig.ollama.timeout,
+      };
+      console.log('Note: Config migrated from "ollama" to "llm" format. Consider updating config.json');
+    }
+
+    // Se non c'e' ne' llm ne' ollama, usa default
+    if (!parsedConfig.llm) {
+      parsedConfig.llm = {
+        provider: 'ollama' as const,
+        model: 'llama3.2:3b',
+        baseUrl: 'http://localhost:11434',
+        timeout: 30000,
+      };
+    }
+
+    return parsedConfig as Config;
   }
 
   private buildContactMap(): void {
@@ -101,6 +140,27 @@ export class ConfigManager {
 
   get(): Config {
     return this.config;
+  }
+
+  /**
+   * Ottiene la configurazione LLM
+   */
+  getLLMConfig() {
+    return this.config.llm;
+  }
+
+  /**
+   * Verifica se il provider corrente richiede API key
+   */
+  requiresApiKey(): boolean {
+    return this.config.llm.provider !== 'ollama';
+  }
+
+  /**
+   * Verifica se il provider corrente e' locale
+   */
+  isLocalProvider(): boolean {
+    return this.config.llm.provider === 'ollama';
   }
 
   getContact(jid: string): DangerousContact | null {

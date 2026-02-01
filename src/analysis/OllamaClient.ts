@@ -33,11 +33,15 @@ export class OllamaClient {
     this.logger = logger;
     this.config = config;
 
-    const cfg = config.get().ollama;
-    this.model = cfg.model;
+    // Supporta sia il nuovo formato llm che il vecchio ollama
+    const llmCfg = config.get().llm;
+    const ollamaCfg = config.get().ollama;
+
+    this.model = llmCfg?.model || ollamaCfg?.model || 'llama3.2:3b';
+    const baseUrl = llmCfg?.baseUrl || ollamaCfg?.baseUrl || 'http://localhost:11434';
 
     this.client = new Ollama({
-      host: cfg.baseUrl,
+      host: baseUrl,
     });
   }
 
@@ -60,7 +64,8 @@ export class OllamaClient {
   }
 
   async analyze(prompt: string): Promise<LLMAnalysisResult> {
-    const timeout = this.config.get().ollama.timeout;
+    const cfg = this.config.get();
+    const timeout = cfg.llm?.timeout || cfg.ollama?.timeout || 30000;
 
     try {
       const response = await Promise.race([

@@ -2,10 +2,32 @@
 // DontDrunkText - Type Definitions
 // ============================================
 
+// === LLM PROVIDER TYPES ===
+
+export type LLMProviderType = 'ollama' | 'openai' | 'anthropic';
+
+export interface LLMConfig {
+  /** Provider LLM da utilizzare */
+  provider: LLMProviderType;
+  /** Nome del modello */
+  model: string;
+  /** API key (richiesta per provider cloud) */
+  apiKey?: string;
+  /** URL base del servizio (default dipende dal provider) */
+  baseUrl?: string;
+  /** Timeout in millisecondi */
+  timeout: number;
+  /** Temperatura per la generazione (0.0-1.0, default 0.3) */
+  temperature?: number;
+}
+
 // === CONFIGURATION TYPES ===
 
 export interface Config {
-  ollama: OllamaConfig;
+  /** Configurazione LLM (nuovo formato) */
+  llm: LLMConfig;
+  /** @deprecated Usa 'llm' invece. Mantenuto per retrocompatibilita' */
+  ollama?: OllamaConfig;
   monitoring: MonitoringConfig;
   dangerousContacts: DangerousContact[];
   detection: DetectionConfig;
@@ -13,6 +35,7 @@ export interface Config {
   privacy: PrivacyConfig;
 }
 
+/** @deprecated Usa LLMConfig invece */
 export interface OllamaConfig {
   model: string;
   baseUrl: string;

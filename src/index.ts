@@ -6,7 +6,7 @@ import { getConfig } from './config/ConfigManager.js';
 import { BaileysClient } from './whatsapp/BaileysClient.js';
 import { MessageInterceptor } from './whatsapp/MessageInterceptor.js';
 import { AlertSender } from './whatsapp/AlertSender.js';
-import { OllamaClient } from './analysis/OllamaClient.js';
+import { createLLMProvider, PROVIDER_INFO } from './llm/index.js';
 import { PatternDetector } from './analysis/PatternDetector.js';
 import { DrunkAnalyzer } from './analysis/DrunkAnalyzer.js';
 import { RiskCalculator } from './decision/RiskCalculator.js';
@@ -41,25 +41,42 @@ async function main() {
 
   logger.info('Starting DontDrunkText...');
 
-  // Check Ollama availability
-  logger.info('Checking Ollama connection...');
-  const ollama = new OllamaClient(logger, config);
+  // Create LLM provider based on configuration
+  const llmConfig = config.getLLMConfig();
+  const providerInfo = PROVIDER_INFO[llmConfig.provider];
+  logger.info(`Initializing LLM provider: ${providerInfo.name} (${llmConfig.model})`);
 
-  const ollamaAvailable = await ollama.isAvailable();
-  if (!ollamaAvailable) {
-    logger.error('Ollama not available. Please ensure Ollama is running:');
-    logger.error('  1. Install: https://ollama.com');
-    logger.error('  2. Run: ollama serve');
-    logger.error(`  3. Pull model: ollama pull ${cfg.ollama.model}`);
+  const llmProvider = createLLMProvider(logger, llmConfig);
+
+  // Check provider availability
+  const providerAvailable = await llmProvider.isAvailable();
+  if (!providerAvailable) {
+    logger.error(`LLM provider "${llmConfig.provider}" not available.`);
+
+    if (llmConfig.provider === 'ollama') {
+      logger.error('Please ensure Ollama is running:');
+      logger.error('  1. Install: https://ollama.com');
+      logger.error('  2. Run: ollama serve');
+      logger.error(`  3. Pull model: ollama pull ${llmConfig.model}`);
+    } else {
+      logger.error('Please check:');
+      logger.error('  1. API key is configured correctly in config.json');
+      logger.error('  2. You have access to the selected model');
+      logger.error('  3. Network connectivity to the API');
+    }
     process.exit(1);
   }
 
-  const modelInfo = await ollama.getModelInfo();
-  logger.info(`Ollama ready: ${modelInfo?.name} (${modelInfo?.size})`);
+  const modelInfo = await llmProvider.getInfo();
+  if (modelInfo) {
+    const sizeInfo = modelInfo.size ? ` (${modelInfo.size})` : '';
+    const localInfo = modelInfo.isLocal ? ' [local]' : ' [cloud]';
+    logger.info(`LLM ready: ${modelInfo.model}${sizeInfo}${localInfo}`);
+  }
 
   // Initialize components
   const patternDetector = new PatternDetector(logger, config);
-  const analyzer = new DrunkAnalyzer(logger, config, ollama, patternDetector);
+  const analyzer = new DrunkAnalyzer(logger, config, llmProvider, patternDetector);
   const riskCalculator = new RiskCalculator(logger, config);
   const interceptor = new MessageInterceptor(logger, config);
 
@@ -146,6 +163,7 @@ async function main() {
   // Print status
   const monitoringConfig = cfg.monitoring;
   logger.info('Monitoring configuration:');
+  logger.info(`  - LLM: ${llmConfig.provider} / ${llmConfig.model}`);
   logger.info(`  - Time window: ${monitoringConfig.startHour}:00 - ${monitoringConfig.endHour}:00`);
   logger.info(`  - Dangerous contacts: ${cfg.dangerousContacts.length}`);
   logger.info(`  - Sensitivity: ${cfg.detection.sensitivity}`);

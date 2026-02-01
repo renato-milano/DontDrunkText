@@ -42,20 +42,43 @@ function printInfo(text: string) {
   print(`  ${c.cyan}ℹ${c.reset} ${text}`);
 }
 
-async function checkOllama(): Promise<boolean> {
-  try {
-    const response = await fetch('http://localhost:11434/api/tags');
-    if (response.ok) {
-      const data = await response.json() as { models: Array<{ name: string }> };
-      const models = data.models?.map((m: { name: string }) => m.name) || [];
-      printOK(`Ollama in esecuzione`);
-      printInfo(`Modelli disponibili: ${models.join(', ') || 'nessuno'}`);
-      return true;
+async function checkLLMProvider(provider: string, model: string): Promise<boolean> {
+  if (provider === 'ollama') {
+    // Check Ollama locale
+    try {
+      const response = await fetch('http://localhost:11434/api/tags');
+      if (response.ok) {
+        const data = await response.json() as { models: Array<{ name: string }> };
+        const models = data.models?.map((m: { name: string }) => m.name) || [];
+        const hasModel = models.some((m: string) => m.startsWith(model.split(':')[0]));
+
+        printOK(`Ollama in esecuzione`);
+        printInfo(`Modelli disponibili: ${models.join(', ') || 'nessuno'}`);
+
+        if (!hasModel) {
+          printWarn(`Modello ${model} non trovato`);
+          printInfo(`Scarica con: ollama pull ${model}`);
+        }
+        return true;
+      }
+    } catch {
+      printFail('Ollama non in esecuzione');
+      printInfo('Avvia con: ollama serve');
     }
-  } catch {
-    printFail('Ollama non in esecuzione');
-    printInfo('Avvia con: ollama serve');
+    return false;
+  } else if (provider === 'openai') {
+    // Check OpenAI (verifica solo se API key e' configurata)
+    printOK(`Provider: OpenAI (${model})`);
+    printInfo('La connessione verra\' verificata all\'avvio');
+    return true;
+  } else if (provider === 'anthropic') {
+    // Check Anthropic (verifica solo se API key e' configurata)
+    printOK(`Provider: Anthropic (${model})`);
+    printInfo('La connessione verra\' verificata all\'avvio');
+    return true;
   }
+
+  printWarn(`Provider sconosciuto: ${provider}`);
   return false;
 }
 
@@ -78,24 +101,44 @@ async function checkNode(): Promise<boolean> {
   }
 }
 
-function checkConfig(): boolean {
+interface ConfigResult {
+  ok: boolean;
+  llmProvider?: string;
+  llmModel?: string;
+}
+
+function checkConfig(): ConfigResult {
   if (existsSync('config.json')) {
     try {
       const config = JSON.parse(readFileSync('config.json', 'utf-8'));
       const contacts = config.dangerousContacts?.length || 0;
+
+      // Determina provider LLM (supporta sia nuovo che vecchio formato)
+      let llmProvider = 'ollama';
+      let llmModel = 'llama3.2:3b';
+
+      if (config.llm) {
+        llmProvider = config.llm.provider || 'ollama';
+        llmModel = config.llm.model || 'llama3.2:3b';
+      } else if (config.ollama) {
+        llmModel = config.ollama.model || 'llama3.2:3b';
+      }
+
       printOK(`Configurazione trovata`);
+      printInfo(`Provider LLM: ${llmProvider} (${llmModel})`);
       printInfo(`Contatti pericolosi: ${contacts}`);
       printInfo(`Sensibilita': ${config.detection?.sensitivity || 'medium'}`);
       printInfo(`Monitoraggio: ${config.monitoring?.startHour || 21}:00 - ${config.monitoring?.endHour || 6}:00`);
-      return true;
+
+      return { ok: true, llmProvider, llmModel };
     } catch {
       printFail('config.json non valido');
-      return false;
+      return { ok: false };
     }
   } else {
     printWarn('config.json non trovato');
     printInfo('Esegui: dontdrunktext setup');
-    return false;
+    return { ok: false };
   }
 }
 
@@ -142,12 +185,16 @@ ${c.cyan}╔══════════════════════�
   await checkNode();
   print('');
 
-  print(`${c.bold}Ollama (LLM Locale):${c.reset}`);
-  await checkOllama();
+  print(`${c.bold}Configurazione:${c.reset}`);
+  const configResult = checkConfig();
   print('');
 
-  print(`${c.bold}Configurazione:${c.reset}`);
-  checkConfig();
+  print(`${c.bold}LLM Provider:${c.reset}`);
+  if (configResult.ok && configResult.llmProvider) {
+    await checkLLMProvider(configResult.llmProvider, configResult.llmModel || 'llama3.2:3b');
+  } else {
+    printWarn('Configurazione LLM non disponibile');
+  }
   print('');
 
   print(`${c.bold}WhatsApp:${c.reset}`);

@@ -7,7 +7,8 @@
 
 import * as readline from 'readline';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import type { Config, DangerousContact, ContactCategory } from '../types/index.js';
+import type { Config, DangerousContact, ContactCategory, LLMProviderType } from '../types/index.js';
+import { RECOMMENDED_MODELS, PROVIDER_INFO, getDefaultModel } from '../llm/index.js';
 
 // Colori ANSI
 const colors = {
@@ -85,13 +86,33 @@ function loadConfig(): Config {
   const examplePath = 'config.example.json';
 
   if (existsSync(configPath)) {
-    return JSON.parse(readFileSync(configPath, 'utf-8'));
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    // Migra da vecchio formato ollama a llm se necessario
+    if (!config.llm && config.ollama) {
+      config.llm = {
+        provider: 'ollama',
+        model: config.ollama.model,
+        baseUrl: config.ollama.baseUrl,
+        timeout: config.ollama.timeout,
+      };
+    }
+    return config;
   } else if (existsSync(examplePath)) {
-    return JSON.parse(readFileSync(examplePath, 'utf-8'));
+    const config = JSON.parse(readFileSync(examplePath, 'utf-8'));
+    if (!config.llm && config.ollama) {
+      config.llm = {
+        provider: 'ollama',
+        model: config.ollama.model,
+        baseUrl: config.ollama.baseUrl,
+        timeout: config.ollama.timeout,
+      };
+    }
+    return config;
   } else {
-    // Config minimale
+    // Config minimale con nuovo formato llm
     return {
-      ollama: {
+      llm: {
+        provider: 'ollama',
         model: 'llama3.2:3b',
         baseUrl: 'http://localhost:11434',
         timeout: 30000,
@@ -173,9 +194,10 @@ async function stepWelcome(): Promise<boolean> {
   print('proteggerti dai messaggi inviati in stato alterato.\n');
 
   print(`${c.bold}Cosa faremo:${c.reset}`);
-  print('  1. Configureremo i contatti "pericolosi" (ex, crush, capo...)');
-  print('  2. Imposteremo gli orari di monitoraggio');
-  print('  3. Sceglieremo il livello di sensibilita\'');
+  print('  1. Sceglieremo il modello AI da utilizzare');
+  print('  2. Configureremo i contatti "pericolosi" (ex, crush, capo...)');
+  print('  3. Imposteremo gli orari di monitoraggio');
+  print('  4. Sceglieremo il livello di sensibilita\'');
   print('');
 
   const answer = await question(`${c.cyan}Pronto per iniziare? [S/n]: ${c.reset}`);
@@ -327,7 +349,97 @@ async function stepSchedule(config: Config): Promise<void> {
   }
 }
 
-// Step 4: Sensibilita'
+// Step 4: Configurazione LLM
+async function stepLLM(config: Config): Promise<void> {
+  printSection('CONFIGURAZIONE MODELLO AI');
+
+  print('DontDrunkText usa un modello AI per analizzare i messaggi.');
+  print('Puoi scegliere tra provider locali (privacy totale) o cloud.\n');
+
+  // Selezione provider
+  print(`${c.bold}Provider disponibili:${c.reset}\n`);
+
+  const providers: { key: LLMProviderType; num: number }[] = [
+    { key: 'ollama', num: 1 },
+    { key: 'openai', num: 2 },
+    { key: 'anthropic', num: 3 },
+  ];
+
+  for (const p of providers) {
+    const info = PROVIDER_INFO[p.key];
+    const recommended = p.key === 'ollama' ? ` ${c.green}(consigliato)${c.reset}` : '';
+    print(`  ${p.num}. ${c.cyan}${info.name}${c.reset}${recommended}`);
+    print(`     ${info.description}`);
+    if (info.requiresApiKey) {
+      print(`     ${c.yellow}Richiede API key${c.reset}`);
+    }
+    print('');
+  }
+
+  const providerAnswer = await question(`Scegli provider [1-3, default 1]: `);
+  const providerIndex = parseInt(providerAnswer) - 1;
+  const selectedProvider = providers[providerIndex]?.key || 'ollama';
+
+  config.llm.provider = selectedProvider;
+  printSuccess(`Provider selezionato: ${PROVIDER_INFO[selectedProvider].name}`);
+
+  // Se provider cloud, chiedi API key
+  if (PROVIDER_INFO[selectedProvider].requiresApiKey) {
+    print(`\n${c.cyan}API Key${c.reset}`);
+    print('Puoi ottenere una API key da:');
+    if (selectedProvider === 'openai') {
+      print('  https://platform.openai.com/api-keys');
+    } else if (selectedProvider === 'anthropic') {
+      print('  https://console.anthropic.com/settings/keys');
+    }
+    print('');
+
+    const apiKey = await question(`Inserisci la tua API key: `);
+    if (apiKey) {
+      config.llm.apiKey = apiKey;
+      printSuccess('API key configurata');
+    } else {
+      printWarning('API key non inserita. Dovrai aggiungerla in config.json');
+    }
+  }
+
+  // Selezione modello
+  print(`\n${c.bold}Modelli disponibili per ${PROVIDER_INFO[selectedProvider].name}:${c.reset}\n`);
+
+  const models = RECOMMENDED_MODELS[selectedProvider];
+  models.forEach((m, i) => {
+    const recommended = m.recommended ? ` ${c.green}(consigliato)${c.reset}` : '';
+    print(`  ${i + 1}. ${c.cyan}${m.name}${c.reset} - ${m.size}${recommended}`);
+  });
+  print(`  ${models.length + 1}. Altro (inserisci manualmente)`);
+  print('');
+
+  const modelAnswer = await question(`Scegli modello [1-${models.length + 1}, default 1]: `);
+  const modelIndex = parseInt(modelAnswer) - 1;
+
+  if (modelIndex >= 0 && modelIndex < models.length) {
+    config.llm.model = models[modelIndex].id;
+  } else if (modelIndex === models.length) {
+    const customModel = await question(`Inserisci il nome del modello: `);
+    if (customModel) {
+      config.llm.model = customModel;
+    } else {
+      config.llm.model = getDefaultModel(selectedProvider);
+    }
+  } else {
+    config.llm.model = getDefaultModel(selectedProvider);
+  }
+
+  printSuccess(`Modello selezionato: ${config.llm.model}`);
+
+  // Se Ollama, ricorda di scaricare il modello
+  if (selectedProvider === 'ollama') {
+    print(`\n${c.yellow}Ricorda:${c.reset} Prima di avviare, scarica il modello con:`);
+    print(`  ${c.cyan}ollama pull ${config.llm.model}${c.reset}`);
+  }
+}
+
+// Step 5: Sensibilita'
 async function stepSensitivity(config: Config): Promise<void> {
   printSection('SENSIBILITA\' RILEVAMENTO');
 
@@ -360,11 +472,19 @@ async function stepSensitivity(config: Config): Promise<void> {
   printSuccess(`Sensibilita' impostata: ${config.detection.sensitivity}`);
 }
 
-// Step 5: Riepilogo
+// Step 6: Riepilogo
 async function stepSummary(config: Config): Promise<boolean> {
   printSection('RIEPILOGO CONFIGURAZIONE');
 
-  print(`${c.bold}Contatti pericolosi:${c.reset}`);
+  print(`${c.bold}Modello AI:${c.reset}`);
+  const providerName = PROVIDER_INFO[config.llm.provider]?.name || config.llm.provider;
+  print(`  • Provider: ${providerName}`);
+  print(`  • Modello: ${config.llm.model}`);
+  if (config.llm.apiKey) {
+    print(`  • API Key: ${'*'.repeat(8)}...configurata`);
+  }
+
+  print(`\n${c.bold}Contatti pericolosi:${c.reset}`);
   if (config.dangerousContacts.length === 0) {
     print('  Nessuno configurato');
   } else {
@@ -428,16 +548,19 @@ async function main() {
     // Carica config
     const config = loadConfig();
 
-    // Step 2: Contatti
+    // Step 2: LLM Provider
+    await stepLLM(config);
+
+    // Step 3: Contatti
     await stepContacts(config);
 
-    // Step 3: Orari
+    // Step 4: Orari
     await stepSchedule(config);
 
-    // Step 4: Sensibilita'
+    // Step 5: Sensibilita'
     await stepSensitivity(config);
 
-    // Step 5: Riepilogo
+    // Step 6: Riepilogo
     const save = await stepSummary(config);
 
     if (save) {

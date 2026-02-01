@@ -21,7 +21,7 @@
   <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" alt="Node Version"/>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform"/>
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License"/>
-  <img src="https://img.shields.io/badge/AI-100%25%20Local-purple" alt="Local AI"/>
+  <img src="https://img.shields.io/badge/AI-Multi--Provider-purple" alt="Multi-Provider AI"/>
 </p>
 
 ---
@@ -36,7 +36,8 @@ Un messaggio all'ex alle 3 di notte, una dichiarazione d'amore al crush dopo qua
 
 ## Caratteristiche
 
-- **100% Locale** - Nessun dato lascia il tuo dispositivo. L'AI gira localmente con Ollama
+- **Multi-Provider AI** - Scegli tra Ollama (locale), OpenAI o Anthropic
+- **Privacy First** - Con Ollama nessun dato lascia il tuo dispositivo
 - **Contatti Pericolosi** - Configura ex, crush, capo e altri contatti "a rischio"
 - **Fasce Orarie** - Monitoraggio attivo nelle ore critiche (es. 21:00-06:00)
 - **AI Intelligente** - Rileva errori di battitura, tono emotivo, pattern sospetti
@@ -48,7 +49,7 @@ Un messaggio all'ex alle 3 di notte, una dichiarazione d'amore al crush dopo qua
 ### Requisiti
 
 - **macOS** o **Linux** (Windows con WSL2)
-- **8GB RAM** minimo (per il modello AI locale)
+- **8GB RAM** minimo (per modelli AI locali)
 
 ### One-Line Install
 
@@ -67,7 +68,7 @@ Lo script installerà automaticamente:
 ### Installazione Manuale
 
 ```bash
-# 1. Installa Ollama
+# 1. Installa Ollama (opzionale, solo per AI locale)
 brew install ollama  # macOS
 # oppure: curl -fsSL https://ollama.com/install.sh | sh
 
@@ -85,6 +86,26 @@ npm run build
 npm run setup
 ```
 
+## Provider AI Supportati
+
+| Provider | Tipo | Pro | Contro |
+|----------|------|-----|--------|
+| **Ollama** | Locale | Privacy totale, gratuito | Richiede RAM/GPU |
+| **OpenAI** | Cloud | Veloce, affidabile | A pagamento |
+| **Anthropic** | Cloud | Ottimo per italiano | A pagamento |
+
+### Modelli Consigliati per Ollama
+
+| Modello | RAM | Note |
+|---------|-----|------|
+| `llama3.2:3b` | 2GB | Consigliato, buon bilanciamento |
+| `llama3.2:1b` | 1.3GB | Leggero, per PC meno potenti |
+| `qwen3:4b` | 2.6GB | Ottimo per testo |
+| `qwen3:8b` | 5GB | Migliore qualita |
+| `phi4-mini` | 2.5GB | Veloce e compatto |
+| `gemma3:4b` | 3GB | Buona qualita generale |
+| `mistral:7b` | 4GB | Eccellente per italiano |
+
 ## Utilizzo
 
 ### Comandi Disponibili
@@ -100,7 +121,7 @@ npm run setup
 ### Primo Avvio
 
 ```bash
-# 1. Configura i tuoi contatti pericolosi
+# 1. Configura provider AI e contatti pericolosi
 dontdrunktext setup
 
 # 2. Avvia il monitoraggio
@@ -140,9 +161,11 @@ dontdrunktext setup
 ```
 
 Il wizard ti guiderà nella configurazione di:
-- Contatti pericolosi (ex, crush, capo...)
-- Orari di monitoraggio
-- Livello di sensibilità
+1. **Provider AI** - Ollama, OpenAI o Anthropic
+2. **Modello** - Quale modello utilizzare
+3. **Contatti pericolosi** - Ex, crush, capo...
+4. **Orari di monitoraggio**
+5. **Livello di sensibilità**
 
 ### Configurazione Manuale
 
@@ -150,6 +173,12 @@ Modifica `config.json`:
 
 ```json
 {
+  "llm": {
+    "provider": "ollama",
+    "model": "llama3.2:3b",
+    "baseUrl": "http://localhost:11434",
+    "timeout": 30000
+  },
   "dangerousContacts": [
     {
       "name": "Ex",
@@ -165,6 +194,32 @@ Modifica `config.json`:
   },
   "detection": {
     "sensitivity": "medium"
+  }
+}
+```
+
+### Configurazione Provider Cloud
+
+Per usare OpenAI o Anthropic, aggiungi la API key:
+
+```json
+{
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "apiKey": "sk-...",
+    "timeout": 30000
+  }
+}
+```
+
+```json
+{
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-3-5-haiku-latest",
+    "apiKey": "sk-ant-...",
+    "timeout": 30000
   }
 }
 ```
@@ -196,7 +251,7 @@ Modifica `config.json`:
 │                     IL TUO DISPOSITIVO                       │
 │                                                              │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
-│  │   WhatsApp   │───>│   Baileys    │───>│   Ollama     │   │
+│  │   WhatsApp   │───>│   Baileys    │───>│  LLM Provider │   │
 │  │  (tu scrivi) │    │ (intercetta) │    │  (analizza)  │   │
 │  └──────────────┘    └──────────────┘    └──────┬───────┘   │
 │                                                  │           │
@@ -232,20 +287,26 @@ Moltiplicatori:
 
 **La tua privacy è la nostra priorità.**
 
-| Aspetto | Garanzia |
-|---------|----------|
-| **Analisi AI** | 100% locale con Ollama - nessun server esterno |
-| **Messaggi** | Mai salvati di default |
-| **Credenziali** | Criptate localmente da Baileys |
-| **Rete** | Zero traffico verso servizi esterni |
-| **Open Source** | Codice completamente verificabile |
+| Aspetto | Ollama (Locale) | Cloud (OpenAI/Anthropic) |
+|---------|-----------------|--------------------------|
+| **Analisi AI** | 100% locale | Dati inviati al provider |
+| **Messaggi** | Mai salvati | Processati dal provider |
+| **Credenziali** | Locali | Locali |
+| **Rete** | Zero traffico esterno | Solo verso API provider |
 
-### Cosa NON viene mai fatto
+### Con Ollama (Consigliato per Privacy)
 
-- Invio messaggi a server esterni
-- Salvataggio del contenuto dei messaggi
-- Condivisione di dati con terze parti
-- Analisi in cloud
+- Analisi AI 100% locale - nessun server esterno
+- Messaggi mai salvati di default
+- Credenziali criptate localmente da Baileys
+- Zero traffico verso servizi esterni
+- Codice completamente open source e verificabile
+
+### Con Provider Cloud
+
+- I messaggi vengono inviati al provider AI per l'analisi
+- Soggetti alle privacy policy di OpenAI/Anthropic
+- Consigliato solo se la privacy non è una priorità assoluta
 
 ## Stack Tecnologico
 
@@ -254,8 +315,8 @@ Moltiplicatori:
 | **Runtime** | Node.js 20+ |
 | **Linguaggio** | TypeScript |
 | **WhatsApp** | Baileys |
-| **AI/LLM** | Ollama (locale) |
-| **Modello** | Llama 3.2 3B |
+| **AI/LLM** | Ollama / OpenAI / Anthropic |
+| **Validation** | Zod |
 
 ## Struttura Progetto
 
@@ -264,6 +325,7 @@ DontDrunkText/
 ├── src/
 │   ├── index.ts           # Entry point
 │   ├── cli/               # CLI e wizard
+│   ├── llm/               # Provider LLM (Ollama, OpenAI, Anthropic)
 │   ├── whatsapp/          # Integrazione WhatsApp
 │   ├── analysis/          # Analisi AI e pattern
 │   ├── decision/          # Calcolo rischio

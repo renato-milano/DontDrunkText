@@ -1,8 +1,10 @@
 {
-  "ollama": {
+  "llm": {
+    "provider": "ollama",
     "model": "llama3.2:3b",
     "baseUrl": "http://localhost:11434",
-    "timeout": 30000
+    "timeout": 30000,
+    "temperature": 0.3
   },
 
   "monitoring": {

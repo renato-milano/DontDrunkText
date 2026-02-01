@@ -5,24 +5,24 @@ import type {
   Logger,
 } from '../types/index.js';
 import { ConfigManager } from '../config/ConfigManager.js';
-import { OllamaClient } from './OllamaClient.js';
+import type { ILLMProvider } from '../llm/ILLMProvider.js';
 import { PatternDetector } from './PatternDetector.js';
 
 export class DrunkAnalyzer {
   private logger: Logger;
   private config: ConfigManager;
-  private ollama: OllamaClient;
+  private llmProvider: ILLMProvider;
   private patternDetector: PatternDetector;
 
   constructor(
     logger: Logger,
     config: ConfigManager,
-    ollama: OllamaClient,
+    llmProvider: ILLMProvider,
     patternDetector: PatternDetector
   ) {
     this.logger = logger;
     this.config = config;
-    this.ollama = ollama;
+    this.llmProvider = llmProvider;
     this.patternDetector = patternDetector;
   }
 
@@ -37,7 +37,7 @@ export class DrunkAnalyzer {
     const prompt = this.buildPrompt(context);
 
     // Run LLM analysis
-    const llmResult = await this.ollama.analyze(prompt);
+    const llmResult = await this.llmProvider.analyze(prompt);
 
     // Calculate combined score
     const combinedScore = this.calculateCombinedScore(

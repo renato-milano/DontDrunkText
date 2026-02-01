@@ -181,7 +181,10 @@ export class BaileysClient {
 
   async disconnect(): Promise<void> {
     if (this.sock) {
-      this.sock.ev.removeAllListeners();
+      // Rimuovi tutti i listener per ogni tipo di evento
+      this.sock.ev.removeAllListeners('connection.update');
+      this.sock.ev.removeAllListeners('creds.update');
+      this.sock.ev.removeAllListeners('messages.upsert');
       await this.sock.logout();
       this.sock = null;
       this.isConnected = false;
