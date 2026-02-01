@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Runtime data - IMPORTANTE: contiene credenziali WhatsApp
+data/
+auth_info/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Config con dati sensibili (usa config.example.json come template)
+# config.json  # Decommentare se contiene numeri reali

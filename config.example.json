@@ -1,0 +1,74 @@
+{
+  "ollama": {
+    "model": "llama3.2:3b",
+    "baseUrl": "http://localhost:11434",
+    "timeout": 30000
+  },
+
+  "monitoring": {
+    "enabled": true,
+    "startHour": 21,
+    "endHour": 6,
+    "timezone": "Europe/Rome",
+    "alwaysMonitorDangerousContacts": true
+  },
+
+  "dangerousContacts": [
+    {
+      "name": "Ex",
+      "phone": "+391234567890",
+      "category": "ex",
+      "riskLevel": 10
+    },
+    {
+      "name": "Crush",
+      "phone": "+390987654321",
+      "category": "crush",
+      "riskLevel": 8
+    },
+    {
+      "name": "Boss",
+      "phone": "+391122334455",
+      "category": "boss",
+      "riskLevel": 7
+    }
+  ],
+
+  "detection": {
+    "sensitivity": "medium",
+    "minScore": 0.6,
+    "weights": {
+      "llm": 0.40,
+      "pattern": 0.30,
+      "time": 0.15,
+      "contact": 0.15
+    },
+    "emotionalKeywords": [
+      "ti amo",
+      "mi manchi",
+      "perche non rispondi",
+      "dobbiamo parlare",
+      "sei sveglio",
+      "ti odio",
+      "non mi importa",
+      "ti penso",
+      "ho bisogno di te"
+    ]
+  },
+
+  "alerts": {
+    "enabled": true,
+    "cooldownMinutes": 30,
+    "selfAlert": true,
+    "messages": {
+      "warning": "Hey, sembra che tu stia scrivendo in uno stato alterato. Forse e' meglio aspettare domani?",
+      "danger": "ATTENZIONE: Stai scrivendo a un contatto 'pericoloso' e sembri ubriaco. Metti giu' il telefono!",
+      "critical": "STOP! Pattern molto preoccupante rilevato. Ti consiglio fortemente di non continuare."
+    }
+  },
+
+  "privacy": {
+    "saveMessageContent": false,
+    "logLevel": "info"
+  }
+}

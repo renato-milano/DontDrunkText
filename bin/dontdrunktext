@@ -1,0 +1,148 @@
+#!/bin/bash
+
+#═══════════════════════════════════════════════════════════════════════════════
+#  DontDrunkText - CLI Wrapper
+#  Comando unificato per gestire l'applicazione
+#═══════════════════════════════════════════════════════════════════════════════
+
+# Trova la directory del progetto
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$SCRIPT_DIR"
+
+# Colori
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Verifica che il build esista
+check_build() {
+    if [ ! -f "dist/index.js" ]; then
+        echo -e "${YELLOW}Build non trovata. Compilazione in corso...${NC}"
+        npm run build --silent
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Errore durante la compilazione${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}Compilazione completata${NC}\n"
+    fi
+}
+
+# Verifica Ollama
+check_ollama() {
+    if ! curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
+        echo -e "${YELLOW}Ollama non in esecuzione. Avvio in corso...${NC}"
+
+        # Avvia Ollama in background
+        ollama serve >/dev/null 2>&1 &
+
+        # Attendi che sia pronto
+        for i in {1..15}; do
+            if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
+                echo -e "${GREEN}Ollama avviato${NC}\n"
+                return 0
+            fi
+            sleep 1
+        done
+
+        echo -e "${RED}Impossibile avviare Ollama${NC}"
+        echo -e "Prova ad avviarlo manualmente: ${CYAN}ollama serve${NC}"
+        exit 1
+    fi
+}
+
+# Mostra help
+show_help() {
+    echo ""
+    echo -e "${CYAN}DontDrunkText${NC} - Proteggiti dai messaggi inviati in stato alterato"
+    echo ""
+    echo -e "${GREEN}Utilizzo:${NC}"
+    echo "  dontdrunktext <comando>"
+    echo ""
+    echo -e "${GREEN}Comandi disponibili:${NC}"
+    echo -e "  ${CYAN}start${NC}     Avvia il monitoraggio WhatsApp"
+    echo -e "  ${CYAN}setup${NC}     Wizard di configurazione guidata"
+    echo -e "  ${CYAN}status${NC}    Mostra stato del sistema"
+    echo -e "  ${CYAN}stop${NC}      Ferma il monitoraggio"
+    echo -e "  ${CYAN}logs${NC}      Mostra i log recenti"
+    echo -e "  ${CYAN}config${NC}    Apri il file di configurazione"
+    echo -e "  ${CYAN}help${NC}      Mostra questo messaggio"
+    echo ""
+    echo -e "${GREEN}Esempi:${NC}"
+    echo "  dontdrunktext setup     # Configura contatti pericolosi"
+    echo "  dontdrunktext start     # Avvia il monitoraggio"
+    echo ""
+    echo -e "${GREEN}Documentazione:${NC}"
+    echo "  STARTUP.md              # Guida di avvio"
+    echo "  DontDrunkText.md        # Specifica tecnica"
+    echo ""
+}
+
+# Comando principale
+case "$1" in
+    start)
+        check_build
+        check_ollama
+        echo -e "${GREEN}Avvio DontDrunkText...${NC}\n"
+        node dist/index.js
+        ;;
+
+    setup)
+        check_build
+        node dist/cli/setup-wizard.js
+        ;;
+
+    status)
+        check_build
+        node dist/cli/status.js
+        ;;
+
+    stop)
+        echo "Ricerca processi DontDrunkText..."
+        pkill -f "node dist/index.js" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}DontDrunkText fermato${NC}"
+        else
+            echo -e "${YELLOW}Nessun processo DontDrunkText in esecuzione${NC}"
+        fi
+        ;;
+
+    logs)
+        if [ -f "/tmp/dontdrunktext.log" ]; then
+            tail -f /tmp/dontdrunktext.log
+        else
+            echo -e "${YELLOW}Nessun file di log trovato${NC}"
+            echo "I log vengono mostrati direttamente nel terminale durante l'esecuzione"
+        fi
+        ;;
+
+    config)
+        if [ -f "config.json" ]; then
+            # Prova ad aprire con l'editor preferito
+            if command -v code >/dev/null 2>&1; then
+                code config.json
+            elif command -v nano >/dev/null 2>&1; then
+                nano config.json
+            elif command -v vim >/dev/null 2>&1; then
+                vim config.json
+            else
+                echo "Apri manualmente: $SCRIPT_DIR/config.json"
+            fi
+        else
+            echo -e "${YELLOW}config.json non trovato${NC}"
+            echo "Esegui prima: dontdrunktext setup"
+        fi
+        ;;
+
+    help|--help|-h|"")
+        show_help
+        ;;
+
+    *)
+        echo -e "${RED}Comando non riconosciuto: $1${NC}"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac
