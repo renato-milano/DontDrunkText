@@ -30,7 +30,7 @@
 
 Hai mai scritto un messaggio di cui ti sei pentito la mattina dopo?
 
-Un messaggio all'ex alle 3 di notte, una dichiarazione d'amore al crush dopo qualche drink, o un'email al capo con opinioni troppo sincere?
+Un messaggio all'ex alle 3 di notte, una dichiarazione d'amore a lei/lui dopo qualche drink, o un'email al capo con opinioni troppo sincere?
 
 **DontDrunkText** monitora i tuoi messaggi WhatsApp e ti avvisa quando rileva che potresti star scrivendo in stato alterato.
 
@@ -38,7 +38,7 @@ Un messaggio all'ex alle 3 di notte, una dichiarazione d'amore al crush dopo qua
 
 - **Multi-Provider AI** - Scegli tra Ollama (locale), OpenAI o Anthropic
 - **Privacy First** - Con Ollama nessun dato lascia il tuo dispositivo
-- **Contatti Pericolosi** - Configura ex, crush, capo e altri contatti "a rischio"
+- **Contatti Pericolosi** - Configura ex, la persona che ti piace, il capo e altri contatti "a rischio"
 - **Buddies** - Amici che ricevono alert quando sei ubriaco (per aiutarti a fermarti!)
 - **Fasce Orarie** - Monitoraggio attivo nelle ore critiche (es. 21:00-06:00)
 - **AI Intelligente** - Rileva errori di battitura, tono emotivo, pattern sospetti
@@ -164,7 +164,7 @@ dontdrunktext setup
 Il wizard ti guiderà nella configurazione di:
 1. **Provider AI** - Ollama, OpenAI o Anthropic
 2. **Modello** - Quale modello utilizzare
-3. **Contatti pericolosi** - Ex, crush, capo...
+3. **Contatti pericolosi** - Ex, la persona che ti piace, il capo...
 4. **Buddies** - Amici che ricevono alert quando sei ubriaco
 5. **Orari di monitoraggio**
 6. **Livello di sensibilità**
@@ -231,11 +231,11 @@ Per usare OpenAI o Anthropic, aggiungi la API key:
 | Categoria | Descrizione |
 |-----------|-------------|
 | `ex` | Ex partner |
-| `crush` | Interesse romantico |
+| `crush` | Lei/lui che ti piace |
 | `boss` | Superiore lavorativo |
 | `colleague` | Collega |
 | `family` | Familiare |
-| `friend` | Amico |
+| `friend` | Amico/a |
 
 ### Livelli di Sensibilità
 
@@ -272,7 +272,7 @@ Puoi configurare degli amici che riceveranno un messaggio WhatsApp quando il sis
 
 | Campo | Descrizione |
 |-------|-------------|
-| `name` | Nome dell'amico |
+| `name` | Nome dell'amico/a |
 | `phone` | Numero WhatsApp |
 | `notifyAlways` | Se `true`, notifica sempre. Se `false`, solo per livelli >= `buddyAlertLevel` |
 | `buddyAlertLevel` | Livello minimo per notificare: `medium`, `high`, `critical` |
@@ -283,7 +283,7 @@ I buddies riceveranno un messaggio tipo:
 
 Ciao Marco!
 
-Un tuo amico potrebbe star scrivendo messaggi in stato alterato.
+Un tuo amico/a potrebbe star scrivendo messaggi in stato alterato.
 
 *Livello:* Alto
 *Risk Score:* 78%
@@ -295,7 +295,7 @@ Un tuo amico potrebbe star scrivendo messaggi in stato alterato.
 
 _Rilevato alle 02:34_
 
-_Potresti voler controllare che stia bene!_
+_Potresti voler controllare che lei/lui stia bene!_
 ```
 
 ## Come Funziona
