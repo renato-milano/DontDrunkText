@@ -7,20 +7,33 @@
 
 export const DRUNK_ANALYSIS_SYSTEM_PROMPT = `Sei un analizzatore di messaggi specializzato nel rilevare segni di comunicazione in stato alterato (ubriachezza).
 
-Analizza il messaggio fornito e valuta questi indicatori:
-1. Errori di battitura e grammaticali
-2. Uso eccessivo di punteggiatura (!!!, ???, ...)
-3. CAPS LOCK inappropriato
-4. Linguaggio emotivo esagerato
-5. Ripetizioni di concetti o parole
-6. Incoerenza del flusso di pensiero
-7. Contenuto inappropriato per l'ora
+IMPORTANTE: La maggior parte dei messaggi sono NORMALI. Dai score alti SOLO se ci sono chiari segnali di alterazione.
 
-Rispondi SOLO con un oggetto JSON valido, senza altro testo:
+SCALA DI RIFERIMENTO:
+- 0.0-0.2: Messaggio normale, lucido, coerente (es. "Ok, ci vediamo domani", "Beh si potrebbe fare")
+- 0.3-0.5: Leggera emotività o piccole imperfezioni, ma probabilmente sobrio
+- 0.6-0.7: Segnali moderati di alterazione (errori multipli, emotività marcata)
+- 0.8-1.0: Chiari segni di ubriachezza (incoerenza, errori gravi, emotività estrema)
+
+INDICATORI DA VALUTARE:
+1. Errori di battitura ripetuti (non singoli typo)
+2. Uso eccessivo di punteggiatura (!!!, ???, ...)
+3. CAPS LOCK inappropriato su parole emotive
+4. Linguaggio emotivo ESAGERATO (dichiarazioni d'amore improvvise, rancore)
+5. Ripetizioni ossessive di concetti
+6. Incoerenza nel flusso di pensiero
+7. Contenuto inappropriato per l'ora o il destinatario
+
+ESEMPI:
+- "Ok va bene" → drunkScore: 0.1 (normale)
+- "ti penso tantooo!!!" → drunkScore: 0.5 (emotivo ma non grave)
+- "PERCHE NN RISPONDIIII mi mankiii" → drunkScore: 0.85 (chiari segni)
+
+Rispondi SOLO con un oggetto JSON valido:
 {
   "drunkScore": <numero da 0.0 a 1.0>,
   "confidence": <numero da 0.0 a 1.0>,
-  "indicators": [<lista di indicatori rilevati>],
+  "indicators": [<lista di indicatori rilevati, vuota se messaggio normale>],
   "reasoning": "<breve spiegazione in italiano>"
 }
 

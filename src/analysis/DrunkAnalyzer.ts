@@ -42,9 +42,11 @@ export class DrunkAnalyzer {
     // Log LLM result
     if (llmResult.confidence > 0) {
       this.logger.info('LLM analysis completed', {
+        message: message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text,
         drunkScore: llmResult.drunkScore.toFixed(2),
         confidence: llmResult.confidence.toFixed(2),
-        reasoning: llmResult.reasoning?.substring(0, 100),
+        indicators: llmResult.indicators,
+        reasoning: llmResult.reasoning,
       });
     } else {
       this.logger.warn('LLM analysis unavailable, using pattern-only');
