@@ -7,6 +7,7 @@
 
 import * as readline from 'readline';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { execSync, spawn } from 'child_process';
 import type { Config, DangerousContact, ContactCategory, LLMProviderType } from '../types/index.js';
 import { RECOMMENDED_MODELS, PROVIDER_INFO, getDefaultModel } from '../llm/index.js';
 
@@ -23,6 +24,186 @@ const colors = {
 };
 
 const c = colors;
+
+// Utility per esecuzione comandi
+function commandExists(cmd: string): boolean {
+  try {
+    execSync(`command -v ${cmd}`, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getOS(): 'macos' | 'linux' | 'windows' | 'unknown' {
+  const platform = process.platform;
+  if (platform === 'darwin') return 'macos';
+  if (platform === 'linux') return 'linux';
+  if (platform === 'win32') return 'windows';
+  return 'unknown';
+}
+
+async function isOllamaRunning(): Promise<boolean> {
+  try {
+    const response = await fetch('http://localhost:11434/api/tags', {
+      signal: AbortSignal.timeout(2000)
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function getInstalledModels(): Promise<string[]> {
+  try {
+    const output = execSync('ollama list', { encoding: 'utf-8' });
+    const lines = output.trim().split('\n').slice(1); // Skip header
+    return lines.map(line => line.split(/\s+/)[0]).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function runWithProgress(command: string, args: string[], description: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    print(`\n${c.cyan}${description}${c.reset}`);
+
+    const child = spawn(command, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true
+    });
+
+    let lastLine = '';
+
+    child.stdout?.on('data', (data: Buffer) => {
+      const text = data.toString();
+      // Mostra progress per ollama pull
+      if (text.includes('%')) {
+        const match = text.match(/(\d+%)/);
+        if (match) {
+          process.stdout.write(`\r  ${c.yellow}Progresso: ${match[1]}${c.reset}    `);
+        }
+      } else {
+        lastLine = text.trim();
+      }
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      const text = data.toString();
+      if (text.includes('%')) {
+        const match = text.match(/(\d+%)/);
+        if (match) {
+          process.stdout.write(`\r  ${c.yellow}Progresso: ${match[1]}${c.reset}    `);
+        }
+      }
+    });
+
+    child.on('close', (code) => {
+      process.stdout.write('\r' + ' '.repeat(50) + '\r'); // Clear progress line
+      resolve(code === 0);
+    });
+
+    child.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+async function installOllama(): Promise<boolean> {
+  const os = getOS();
+  printInfo('Installazione Ollama in corso...');
+
+  try {
+    if (os === 'macos') {
+      // Prova prima con Homebrew
+      if (commandExists('brew')) {
+        print(`  ${c.yellow}Uso Homebrew per installare Ollama...${c.reset}`);
+        execSync('brew install ollama', { stdio: 'inherit' });
+      } else {
+        print(`  ${c.yellow}Scarico installer Ollama...${c.reset}`);
+        execSync('curl -fsSL https://ollama.com/install.sh | sh', { stdio: 'inherit' });
+      }
+    } else if (os === 'linux') {
+      print(`  ${c.yellow}Scarico installer Ollama...${c.reset}`);
+      execSync('curl -fsSL https://ollama.com/install.sh | sh', { stdio: 'inherit' });
+    } else if (os === 'windows') {
+      printWarning('Su Windows, scarica Ollama manualmente da: https://ollama.com/download');
+      printInfo('Dopo l\'installazione, riavvia questo wizard.');
+      return false;
+    } else {
+      printWarning('Sistema operativo non supportato per installazione automatica');
+      printInfo('Installa Ollama manualmente da: https://ollama.com');
+      return false;
+    }
+
+    // Verifica installazione
+    if (commandExists('ollama')) {
+      printSuccess('Ollama installato con successo!');
+      return true;
+    }
+  } catch (error) {
+    printWarning('Installazione automatica fallita');
+    printInfo('Installa Ollama manualmente da: https://ollama.com');
+  }
+
+  return false;
+}
+
+async function startOllama(): Promise<boolean> {
+  printInfo('Avvio Ollama in background...');
+
+  const os = getOS();
+
+  try {
+    if (os === 'macos') {
+      // Su macOS prova prima come servizio brew
+      try {
+        execSync('brew services start ollama', { stdio: 'ignore' });
+      } catch {
+        // Fallback: avvia direttamente
+        spawn('ollama', ['serve'], {
+          detached: true,
+          stdio: 'ignore'
+        }).unref();
+      }
+    } else {
+      spawn('ollama', ['serve'], {
+        detached: true,
+        stdio: 'ignore'
+      }).unref();
+    }
+
+    // Attendi che sia pronto (max 30 secondi)
+    print(`  ${c.yellow}Attendo che Ollama sia pronto...${c.reset}`);
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 1000));
+      if (await isOllamaRunning()) {
+        printSuccess('Ollama avviato e pronto!');
+        return true;
+      }
+      process.stdout.write(`\r  ${c.yellow}Attendo... ${i + 1}s${c.reset}  `);
+    }
+    process.stdout.write('\r' + ' '.repeat(30) + '\r');
+
+  } catch (error) {
+    // Ignora errori, verificheremo dopo
+  }
+
+  return await isOllamaRunning();
+}
+
+async function pullModel(model: string): Promise<boolean> {
+  const success = await runWithProgress('ollama', ['pull', model], `Download modello ${model}...`);
+
+  if (success) {
+    printSuccess(`Modello ${model} scaricato con successo!`);
+  } else {
+    printWarning(`Download modello ${model} fallito`);
+    printInfo(`Puoi scaricarlo manualmente con: ollama pull ${model}`);
+  }
+
+  return success;
+}
 
 // Readline interface
 const rl = readline.createInterface({
@@ -384,6 +565,45 @@ async function stepLLM(config: Config): Promise<void> {
   config.llm.provider = selectedProvider;
   printSuccess(`Provider selezionato: ${PROVIDER_INFO[selectedProvider].name}`);
 
+  // Se Ollama, verifica/installa/avvia automaticamente
+  if (selectedProvider === 'ollama') {
+    print('');
+
+    // 1. Verifica se Ollama e' installato
+    if (!commandExists('ollama')) {
+      printWarning('Ollama non trovato sul sistema');
+      const installAnswer = await question(`${c.cyan}Vuoi installare Ollama automaticamente? [S/n]: ${c.reset}`);
+
+      if (installAnswer.toLowerCase() !== 'n') {
+        const installed = await installOllama();
+        if (!installed) {
+          printWarning('Continuero\' senza Ollama. Dovrai installarlo manualmente.');
+        }
+      }
+    } else {
+      printSuccess('Ollama trovato sul sistema');
+    }
+
+    // 2. Verifica se Ollama e' in esecuzione
+    if (commandExists('ollama')) {
+      const running = await isOllamaRunning();
+      if (!running) {
+        printWarning('Ollama non e\' in esecuzione');
+        const startAnswer = await question(`${c.cyan}Vuoi avviare Ollama automaticamente? [S/n]: ${c.reset}`);
+
+        if (startAnswer.toLowerCase() !== 'n') {
+          const started = await startOllama();
+          if (!started) {
+            printWarning('Impossibile avviare Ollama automaticamente');
+            printInfo('Avvialo manualmente con: ollama serve');
+          }
+        }
+      } else {
+        printSuccess('Ollama in esecuzione');
+      }
+    }
+  }
+
   // Se provider cloud, chiedi API key
   if (PROVIDER_INFO[selectedProvider].requiresApiKey) {
     print(`\n${c.cyan}API Key${c.reset}`);
@@ -433,9 +653,33 @@ async function stepLLM(config: Config): Promise<void> {
 
   printSuccess(`Modello selezionato: ${config.llm.model}`);
 
-  // Se Ollama, ricorda di scaricare il modello
-  if (selectedProvider === 'ollama') {
-    print(`\n${c.yellow}Ricorda:${c.reset} Prima di avviare, scarica il modello con:`);
+  // Se Ollama, verifica/scarica modello automaticamente
+  if (selectedProvider === 'ollama' && commandExists('ollama') && await isOllamaRunning()) {
+    print('');
+
+    // Verifica se il modello e' gia' presente
+    const installedModels = await getInstalledModels();
+    const modelBase = config.llm.model.split(':')[0]; // "llama3.2:3b" -> "llama3.2"
+
+    const modelFound = installedModels.some(m =>
+      m === config.llm.model || m.startsWith(modelBase + ':') || m === modelBase
+    );
+
+    if (modelFound) {
+      printSuccess(`Modello ${config.llm.model} gia' presente`);
+    } else {
+      printWarning(`Modello ${config.llm.model} non trovato localmente`);
+      const pullAnswer = await question(`${c.cyan}Vuoi scaricarlo ora? (puo' richiedere alcuni minuti) [S/n]: ${c.reset}`);
+
+      if (pullAnswer.toLowerCase() !== 'n') {
+        await pullModel(config.llm.model);
+      } else {
+        printInfo(`Ricorda di scaricarlo prima di avviare: ollama pull ${config.llm.model}`);
+      }
+    }
+  } else if (selectedProvider === 'ollama') {
+    // Ollama non disponibile, mostra promemoria
+    print(`\n${c.yellow}Ricorda:${c.reset} Prima di avviare, assicurati che Ollama sia installato e scarica il modello:`);
     print(`  ${c.cyan}ollama pull ${config.llm.model}${c.reset}`);
   }
 }

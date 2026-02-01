@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 
+// Silence noisy libsignal debug logs
+const originalConsoleInfo = console.info;
+console.info = (...args: unknown[]) => {
+  const msg = args[0];
+  if (typeof msg === 'string' && msg.includes('Closing session')) return;
+  originalConsoleInfo.apply(console, args);
+};
+
 import { createLogger } from './core/Logger.js';
 import { eventBus } from './core/EventBus.js';
 import { getConfig } from './config/ConfigManager.js';

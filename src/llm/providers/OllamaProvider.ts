@@ -71,7 +71,8 @@ export class OllamaProvider implements ILLMProvider {
       const content = response.message.content;
       return this.parseResponse(content);
     } catch (error) {
-      this.logger.error('Ollama analysis failed', { error });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Ollama analysis failed', { error: errorMessage });
       return this.getDefaultResult();
     }
   }

@@ -4,9 +4,11 @@ import makeWASocket, {
   WASocket,
   proto,
   WAMessage,
+  Browsers,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
-import * as qrcode from 'qrcode-terminal';
+import qrcode from 'qrcode-terminal';
+import { rmSync } from 'fs';
 import type { Logger, WhatsAppMessage } from '../types/index.js';
 import { createSilentLogger } from '../core/Logger.js';
 
@@ -31,36 +33,46 @@ export class BaileysClient {
 
     this.sock = makeWASocket({
       auth: state,
-      printQRInTerminal: false, // We handle QR manually
+      browser: Browsers.ubuntu('Chrome'),
       logger: createSilentLogger(),
-      browser: ['DontDrunkText', 'Chrome', '120.0.0'],
-      generateHighQualityLinkPreview: false,
     });
 
     // Handle connection updates
     this.sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
+      // Handle QR code - print it for user to scan
       if (qr) {
-        this.logger.info('Scan QR code with WhatsApp:');
-        console.log(''); // Empty line for better visibility
+        console.log('\n');
+        this.logger.info('========================================');
+        this.logger.info('  Scan this QR code with WhatsApp:');
+        this.logger.info('  (Settings > Linked Devices > Link)');
+        this.logger.info('========================================');
+        console.log('');
         qrcode.generate(qr, { small: true });
         console.log('');
       }
 
       if (connection === 'close') {
         const reason = (lastDisconnect?.error as Boom)?.output?.statusCode;
-        const shouldReconnect = reason !== DisconnectReason.loggedOut;
-
         this.isConnected = false;
-        this.logger.warn(`Connection closed. Reason: ${reason}`);
 
-        if (shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
+        if (reason === DisconnectReason.loggedOut) {
+          // Sessione scaduta/invalidata - cancella auth e riconnetti per nuovo QR
+          this.logger.warn('Session expired or logged out. Clearing auth and requesting new QR...');
+          try {
+            rmSync(this.authDir, { recursive: true, force: true });
+          } catch {
+            // Ignora errori di cancellazione
+          }
+          this.reconnectAttempts = 0;
+          setTimeout(() => this.connect(), 2000);
+        } else if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
-          this.logger.info(`Reconnecting... Attempt ${this.reconnectAttempts}`);
-          setTimeout(() => this.connect(), 3000);
-        } else if (reason === DisconnectReason.loggedOut) {
-          this.logger.error('Logged out. Please delete auth folder and restart.');
+          this.logger.info(`Connection closed (${reason}). Reconnecting... Attempt ${this.reconnectAttempts}`);
+          setTimeout(() => this.connect(), 5000);
+        } else {
+          this.logger.error(`Connection failed after ${this.maxReconnectAttempts} attempts`);
         }
       }
 
@@ -181,11 +193,12 @@ export class BaileysClient {
 
   async disconnect(): Promise<void> {
     if (this.sock) {
-      // Rimuovi tutti i listener per ogni tipo di evento
+      // Rimuovi tutti i listener
       this.sock.ev.removeAllListeners('connection.update');
       this.sock.ev.removeAllListeners('creds.update');
       this.sock.ev.removeAllListeners('messages.upsert');
-      await this.sock.logout();
+      // Solo chiudi la connessione, NON fare logout (invaliderebbe la sessione)
+      this.sock.end(undefined);
       this.sock = null;
       this.isConnected = false;
     }

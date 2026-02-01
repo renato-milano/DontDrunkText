@@ -39,6 +39,17 @@ export class DrunkAnalyzer {
     // Run LLM analysis
     const llmResult = await this.llmProvider.analyze(prompt);
 
+    // Log LLM result
+    if (llmResult.confidence > 0) {
+      this.logger.info('LLM analysis completed', {
+        drunkScore: llmResult.drunkScore.toFixed(2),
+        confidence: llmResult.confidence.toFixed(2),
+        reasoning: llmResult.reasoning?.substring(0, 100),
+      });
+    } else {
+      this.logger.warn('LLM analysis unavailable, using pattern-only');
+    }
+
     // Calculate combined score
     const combinedScore = this.calculateCombinedScore(
       llmResult,

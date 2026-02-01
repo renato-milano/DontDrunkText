@@ -18,7 +18,6 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configurazione
-OLLAMA_MODEL="llama3.2:3b"
 MIN_NODE_VERSION=20
 INSTALL_DIR="$HOME/.dontdrunktext"
 
@@ -187,54 +186,6 @@ install_ollama() {
     fi
 }
 
-#───────────────────────────────────────────────────────────────────────────────
-# Avvio Ollama e Download Modello
-#───────────────────────────────────────────────────────────────────────────────
-
-setup_ollama_model() {
-    print_step "Setup Modello LLM"
-
-    # Verifica se Ollama e' in esecuzione
-    if ! curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
-        print_info "Avvio Ollama in background..."
-
-        OS=$(get_os)
-        if [ "$OS" = "macos" ]; then
-            # Su macOS, ollama serve potrebbe essere gestito come servizio
-            ollama serve >/dev/null 2>&1 &
-        else
-            ollama serve >/dev/null 2>&1 &
-        fi
-
-        # Attendi che Ollama sia pronto
-        print_info "Attendo che Ollama sia pronto..."
-        for i in {1..30}; do
-            if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
-                break
-            fi
-            sleep 1
-        done
-    fi
-
-    if ! curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
-        print_error "Impossibile avviare Ollama"
-        print_info "Prova ad avviarlo manualmente: ollama serve"
-        exit 1
-    fi
-
-    print_success "Ollama in esecuzione"
-
-    # Verifica se il modello e' gia' scaricato
-    if ollama list 2>/dev/null | grep -q "$OLLAMA_MODEL"; then
-        print_success "Modello $OLLAMA_MODEL gia' presente"
-    else
-        print_info "Download modello $OLLAMA_MODEL (potrebbe richiedere alcuni minuti)..."
-        echo ""
-        ollama pull "$OLLAMA_MODEL"
-        echo ""
-        print_success "Modello $OLLAMA_MODEL scaricato"
-    fi
-}
 
 #───────────────────────────────────────────────────────────────────────────────
 # Setup Progetto
@@ -404,8 +355,8 @@ main() {
     echo -e "${BOLD}Questo script installera':${NC}"
     echo -e "  • Node.js (se necessario)"
     echo -e "  • Ollama (LLM locale)"
-    echo -e "  • Modello $OLLAMA_MODEL"
     echo -e "  • Dipendenze del progetto"
+    echo -e "  • Il modello AI verra' scaricato nel wizard di configurazione"
     echo ""
 
     read -p "Continuare con l'installazione? [S/n]: " -n 1 -r
@@ -419,7 +370,6 @@ main() {
     check_system
     install_node
     install_ollama
-    setup_ollama_model
     setup_project
     print_completion
 }

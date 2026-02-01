@@ -1,9 +1,6 @@
 <p align="center">
   <img src="logo.png" alt="DontDrunkText Logo" width="700"/>
 </p>
-
-<h1 align="center">DontDrunkText</h1>
-
 <p align="center">
   <strong>Proteggiti dai messaggi inviati in stato alterato</strong>
 </p>
@@ -61,10 +58,11 @@ cd DontDrunkText
 ```
 
 Lo script installerà automaticamente:
+
 - Node.js (se necessario)
 - Ollama (LLM locale)
-- Modello AI (llama3.2:3b)
 - Tutte le dipendenze
+- Il modello AI verrà scaricato durante il wizard di configurazione
 
 ### Installazione Manuale
 
@@ -89,35 +87,35 @@ npm run setup
 
 ## Provider AI Supportati
 
-| Provider | Tipo | Pro | Contro |
-|----------|------|-----|--------|
-| **Ollama** | Locale | Privacy totale, gratuito | Richiede RAM/GPU |
-| **OpenAI** | Cloud | Veloce, affidabile | A pagamento |
-| **Anthropic** | Cloud | Ottimo per italiano | A pagamento |
+| Provider      | Tipo   | Pro                      | Contro           |
+| ------------- | ------ | ------------------------ | ---------------- |
+| **Ollama**    | Locale | Privacy totale, gratuito | Richiede RAM/GPU |
+| **OpenAI**    | Cloud  | Veloce, affidabile       | A pagamento      |
+| **Anthropic** | Cloud  | Ottimo per italiano      | A pagamento      |
 
 ### Modelli Consigliati per Ollama
 
-| Modello | RAM | Note |
-|---------|-----|------|
-| `llama3.2:3b` | 2GB | Consigliato, buon bilanciamento |
-| `llama3.2:1b` | 1.3GB | Leggero, per PC meno potenti |
-| `qwen3:4b` | 2.6GB | Ottimo per testo |
-| `qwen3:8b` | 5GB | Migliore qualita |
-| `phi4-mini` | 2.5GB | Veloce e compatto |
-| `gemma3:4b` | 3GB | Buona qualita generale |
-| `mistral:7b` | 4GB | Eccellente per italiano |
+| Modello       | RAM   | Note                            |
+| ------------- | ----- | ------------------------------- |
+| `llama3.2:3b` | 2GB   | Consigliato, buon bilanciamento |
+| `llama3.2:1b` | 1.3GB | Leggero, per PC meno potenti    |
+| `qwen3:4b`    | 2.6GB | Ottimo per testo                |
+| `qwen3:8b`    | 5GB   | Migliore qualita                |
+| `phi4-mini`   | 2.5GB | Veloce e compatto               |
+| `gemma3:4b`   | 3GB   | Buona qualita generale          |
+| `mistral:7b`  | 4GB   | Eccellente per italiano         |
 
 ## Utilizzo
 
 ### Comandi Disponibili
 
-| Comando | Descrizione |
-|---------|-------------|
-| `dontdrunktext start` | Avvia il monitoraggio |
-| `dontdrunktext setup` | Wizard di configurazione |
+| Comando                | Descrizione              |
+| ---------------------- | ------------------------ |
+| `dontdrunktext start`  | Avvia il monitoraggio    |
+| `dontdrunktext setup`  | Wizard di configurazione |
 | `dontdrunktext status` | Mostra stato del sistema |
-| `dontdrunktext stop` | Ferma il monitoraggio |
-| `dontdrunktext help` | Mostra aiuto |
+| `dontdrunktext stop`   | Ferma il monitoraggio    |
+| `dontdrunktext help`   | Mostra aiuto             |
 
 ### Primo Avvio
 
@@ -162,8 +160,9 @@ dontdrunktext setup
 ```
 
 Il wizard ti guiderà nella configurazione di:
-1. **Provider AI** - Ollama, OpenAI o Anthropic
-2. **Modello** - Quale modello utilizzare
+
+1. **Provider AI** - Ollama, OpenAI o Anthropic (installa automaticamente Ollama se mancante)
+2. **Modello** - Quale modello utilizzare (scarica automaticamente se non presente)
 3. **Contatti pericolosi** - Ex, la persona che ti piace, il capo...
 4. **Buddies** - Amici che ricevono alert quando sei ubriaco
 5. **Orari di monitoraggio**
@@ -228,23 +227,23 @@ Per usare OpenAI o Anthropic, aggiungi la API key:
 
 ### Categorie Contatti
 
-| Categoria | Descrizione |
-|-----------|-------------|
-| `ex` | Ex partner |
-| `crush` | Lei/lui che ti piace |
-| `boss` | Superiore lavorativo |
-| `colleague` | Collega |
-| `family` | Familiare |
-| `friend` | Amico/a |
+| Categoria   | Descrizione          |
+| ----------- | -------------------- |
+| `ex`        | Ex partner           |
+| `crush`     | Lei/lui che ti piace |
+| `boss`      | Superiore lavorativo |
+| `colleague` | Collega              |
+| `family`    | Familiare            |
+| `friend`    | Amico/a              |
 
 ### Livelli di Sensibilità
 
-| Livello | Descrizione |
-|---------|-------------|
-| `low` | Pochi alert, solo casi evidenti |
-| `medium` | Bilanciato (raccomandato) |
-| `high` | Più alert, maggiore cautela |
-| `paranoid` | Alert frequenti |
+| Livello    | Descrizione                     |
+| ---------- | ------------------------------- |
+| `low`      | Pochi alert, solo casi evidenti |
+| `medium`   | Bilanciato (raccomandato)       |
+| `high`     | Più alert, maggiore cautela     |
+| `paranoid` | Alert frequenti                 |
 
 ### Buddies (Amici di Supporto)
 
@@ -270,14 +269,15 @@ Puoi configurare degli amici che riceveranno un messaggio WhatsApp quando il sis
 }
 ```
 
-| Campo | Descrizione |
-|-------|-------------|
-| `name` | Nome dell'amico/a |
-| `phone` | Numero WhatsApp |
-| `notifyAlways` | Se `true`, notifica sempre. Se `false`, solo per livelli >= `buddyAlertLevel` |
-| `buddyAlertLevel` | Livello minimo per notificare: `medium`, `high`, `critical` |
+| Campo             | Descrizione                                                                   |
+| ----------------- | ----------------------------------------------------------------------------- |
+| `name`            | Nome dell'amico/a                                                             |
+| `phone`           | Numero WhatsApp                                                               |
+| `notifyAlways`    | Se `true`, notifica sempre. Se `false`, solo per livelli >= `buddyAlertLevel` |
+| `buddyAlertLevel` | Livello minimo per notificare: `medium`, `high`, `critical`                   |
 
 I buddies riceveranno un messaggio tipo:
+
 ```
 *DontDrunkText - Avviso Amico* ⚠️
 
@@ -341,12 +341,12 @@ Moltiplicatori:
 
 **La tua privacy è la nostra priorità.**
 
-| Aspetto | Ollama (Locale) | Cloud (OpenAI/Anthropic) |
-|---------|-----------------|--------------------------|
-| **Analisi AI** | 100% locale | Dati inviati al provider |
-| **Messaggi** | Mai salvati | Processati dal provider |
-| **Credenziali** | Locali | Locali |
-| **Rete** | Zero traffico esterno | Solo verso API provider |
+| Aspetto         | Ollama (Locale)       | Cloud (OpenAI/Anthropic) |
+| --------------- | --------------------- | ------------------------ |
+| **Analisi AI**  | 100% locale           | Dati inviati al provider |
+| **Messaggi**    | Mai salvati           | Processati dal provider  |
+| **Credenziali** | Locali                | Locali                   |
+| **Rete**        | Zero traffico esterno | Solo verso API provider  |
 
 ### Con Ollama (Consigliato per Privacy)
 
@@ -364,13 +364,13 @@ Moltiplicatori:
 
 ## Stack Tecnologico
 
-| Componente | Tecnologia |
-|------------|------------|
-| **Runtime** | Node.js 20+ |
-| **Linguaggio** | TypeScript |
-| **WhatsApp** | Baileys |
-| **AI/LLM** | Ollama / OpenAI / Anthropic |
-| **Validation** | Zod |
+| Componente     | Tecnologia                  |
+| -------------- | --------------------------- |
+| **Runtime**    | Node.js 20+                 |
+| **Linguaggio** | TypeScript                  |
+| **WhatsApp**   | Baileys                     |
+| **AI/LLM**     | Ollama / OpenAI / Anthropic |
+| **Validation** | Zod                         |
 
 ## Struttura Progetto
 
@@ -406,6 +406,7 @@ MIT License - vedi [LICENSE](LICENSE) per dettagli.
 ## Disclaimer
 
 Questo software è fornito "così com'è" senza garanzie. L'autore non è responsabile per:
+
 - Messaggi inviati nonostante gli avvisi
 - Relazioni rovinate
 - Carriere compromesse
